@@ -4,7 +4,8 @@ from tensorflow import keras
 from .layers.attenction import AttenctionBlock
 from .layers.residual import ResidualBlock
 from .layers.mir import MFAMBlock, downSample, upSample
-from .config import IMG_WIDTH
+IMG_WIDTH = None
+IMG_HEIGHT = None
 
 
 class MyLoss(tf.keras.losses.Loss):
@@ -39,7 +40,7 @@ class GRAY:
         )
 
     def getModel(self):
-        input = keras.Input(shape=(IMG_WIDTH, IMG_WIDTH, 3))
+        input = keras.Input(shape=(IMG_WIDTH, IMG_HEIGHT, 3))
 
         down1 = downSample(input, 16)
         down2 = downSample(down1, 32)
