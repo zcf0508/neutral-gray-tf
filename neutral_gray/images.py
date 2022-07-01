@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -11,13 +12,48 @@ from .config import IMG_WIDTH
 import os
 
 
-def is_image_file(filename):
+def _is_image_file(filename):
     return any(
         filename.lower().endswith(extension)
         for extension in [
             ".jpg",
         ]
     )
+
+
+def encode_image(image_url):
+    img = Image.open(image_url)
+    aspect_ratio = img.height / img.width
+
+    img = img.resize(
+        (IMG_WIDTH, int(IMG_WIDTH * aspect_ratio)), Image.Resampling.LANCZOS
+    )
+
+    # img = img.transpose(Image.Transpose.FLIP_LEFT_RIGHT)  # 水平翻转
+    # enh_bri = ImageEnhance.Brightness(img)
+    # img = enh_bri.enhance(factor=0.9)  # 亮度
+    # img = img.rotate(10)  # 旋转
+
+    img_array = np.asarray(img) / 255  # 归一化
+    # img_gray  = np.dot(img_array,[0.299,0.587,0.114]) / 255.0 # 转为黑白
+
+    # 预览
+    # plt.imshow((np.squeeze(img_array) * 255).astype(np.uint8))
+    # plt.show()
+
+    return img_array
+
+
+def decode_image(img_array, save_path):
+    result = tf.clip_by_value(np.asarray(img_array) * 255, 0, 255)
+    result = tf.cast(result, dtype=tf.uint8)
+
+    # 预览
+    # plt.imshow(result)
+    # plt.show()
+
+    tf.keras.utils.save_img(save_path, result)
+    return result
 
 
 class ImageLoder:
@@ -32,29 +68,10 @@ class ImageLoder:
         images = [
             os.path.join(source_dir, x)
             for x in os.listdir(source_dir)
-            if is_image_file(x)
+            if _is_image_file(x)
         ]
         for image_url in images:
-            img = Image.open(image_url)
-            aspect_ratio = img.height / img.width
-
-            img = img.resize(
-                (IMG_WIDTH, int(IMG_WIDTH * aspect_ratio)), Image.Resampling.LANCZOS
-            )
-
-            # img = img.transpose(Image.Transpose.FLIP_LEFT_RIGHT)  # 水平翻转
-            # enh_bri = ImageEnhance.Brightness(img)
-            # img = enh_bri.enhance(factor=0.9)  # 亮度
-            # img = img.rotate(10)  # 旋转
-
-            img_array = (np.asarray(img) - 127.5) / 127.5  # 归一化
-            # img_gray  = np.dot(img_array,[0.299,0.587,0.114]) / 255.0 # 转为黑白
-
-            # 预览
-            # plt.imshow((np.squeeze(img_array) * 127.5 + 127.5).astype(np.uint8))
-            # plt.show()
-
-            sources.append(img_array)
+            sources.append(encode_image(image_url))
 
         self.sources = np.array(sources)
 
@@ -63,29 +80,10 @@ class ImageLoder:
         images = [
             os.path.join(result_dir, x)
             for x in os.listdir(result_dir)
-            if is_image_file(x)
+            if _is_image_file(x)
         ]
         for image_url in images:
-            img = Image.open(image_url)
-            aspect_ratio = img.height / img.width
-
-            img = img.resize(
-                (IMG_WIDTH, int(IMG_WIDTH * aspect_ratio)), Image.Resampling.LANCZOS
-            )
-
-            # img = img.transpose(Image.Transpose.FLIP_LEFT_RIGHT)  # 水平翻转
-            # enh_bri = ImageEnhance.Brightness(img)
-            # img = enh_bri.enhance(factor=0.9)  # 亮度
-            # img = img.rotate(10)  # 旋转
-
-            img_array = (np.asarray(img) - 127.5) / 127.5  # 归一化
-            # img_gray  = np.dot(img_array,[0.299,0.587,0.114]) / 255.0 # 转为黑白
-
-            # 预览
-            # plt.imshow((np.squeeze(img_array) * 127.5 + 127.5).astype(np.uint8))
-            # plt.show()
-
-            results.append(img_array)
+            results.append(encode_image(image_url))
 
         self.results = np.array(results)
 
