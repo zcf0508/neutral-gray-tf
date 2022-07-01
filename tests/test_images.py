@@ -12,4 +12,4 @@ class TestImages(unittest.TestCase):
             "./data/0", "./data/1"
         ).load_data(1)
 
-        self.assertEqual(train_images.shape[1:4], (224, 336, 3))
+        self.assertEqual(train_images.shape[1:4], (336, 224, 3))

@@ -37,10 +37,10 @@ class ImageLoder:
         for image_url in images:
             img = Image.open(image_url)
             aspect_ratio = img.height / img.width
-            if IMG_WIDTH:
-                img = img.resize(
-                    (IMG_WIDTH, int(IMG_WIDTH * aspect_ratio)), Image.Resampling.LANCZOS
-                )
+
+            img = img.resize(
+                (IMG_WIDTH, int(IMG_WIDTH * aspect_ratio)), Image.Resampling.LANCZOS
+            )
 
             # img = img.transpose(Image.Transpose.FLIP_LEFT_RIGHT)  # 水平翻转
             # enh_bri = ImageEnhance.Brightness(img)
@@ -54,9 +54,7 @@ class ImageLoder:
             # plt.imshow((np.squeeze(img_array) * 127.5 + 127.5).astype(np.uint8))
             # plt.show()
 
-            sources.append(
-                np.reshape(img_array, [IMG_WIDTH, int(IMG_WIDTH * aspect_ratio), 3])
-            )
+            sources.append(img_array)
 
         self.sources = np.array(sources)
 
@@ -70,10 +68,10 @@ class ImageLoder:
         for image_url in images:
             img = Image.open(image_url)
             aspect_ratio = img.height / img.width
-            if IMG_WIDTH:
-                img = img.resize(
-                    (IMG_WIDTH, int(IMG_WIDTH * aspect_ratio)), Image.Resampling.LANCZOS
-                )
+
+            img = img.resize(
+                (IMG_WIDTH, int(IMG_WIDTH * aspect_ratio)), Image.Resampling.LANCZOS
+            )
 
             # img = img.transpose(Image.Transpose.FLIP_LEFT_RIGHT)  # 水平翻转
             # enh_bri = ImageEnhance.Brightness(img)
@@ -87,9 +85,7 @@ class ImageLoder:
             # plt.imshow((np.squeeze(img_array) * 127.5 + 127.5).astype(np.uint8))
             # plt.show()
 
-            results.append(
-                np.reshape(img_array, [IMG_WIDTH, int(IMG_WIDTH * aspect_ratio), 3])
-            )
+            results.append(img_array)
 
         self.results = np.array(results)
 
