@@ -3,6 +3,7 @@
 
 import tensorflow as tf
 import numpy as np
+import numpy.typing as npt
 import matplotlib.pyplot as plt
 from PIL import Image
 from PIL import ImageEnhance
@@ -12,7 +13,7 @@ from .config import IMG_WIDTH
 import os
 
 
-def _is_image_file(filename):
+def _is_image_file(filename: str):
     return any(
         filename.lower().endswith(extension)
         for extension in [
@@ -21,7 +22,7 @@ def _is_image_file(filename):
     )
 
 
-def encode_image(image_url):
+def encode_image(image_url: str):
     img = Image.open(image_url)
     aspect_ratio = img.height / img.width
 
@@ -44,7 +45,12 @@ def encode_image(image_url):
     return img_array
 
 
-def decode_image(img_array, save_path):
+def decode_image(img_array: npt.ArrayLike, save_path: str = ""):
+    """
+    decode_image(
+        model.predict(...)[0], 'path/to/save'
+    )
+    """
     result = tf.clip_by_value(np.asarray(img_array) * 255, 0, 255)
     result = tf.cast(result, dtype=tf.uint8)
 
@@ -52,18 +58,20 @@ def decode_image(img_array, save_path):
     # plt.imshow(result)
     # plt.show()
 
-    tf.keras.utils.save_img(save_path, result)
+    if save_path:
+        tf.keras.utils.save_img(save_path, result)
+
     return result
 
 
 class ImageLoder:
-    def __init__(self, source_dir, result_dir):
+    def __init__(self, source_dir: str, result_dir: str):
         self.sources = []
         self.results = []
         self.__get_source__(source_dir)
         self.__get_result__(result_dir)
 
-    def __get_source__(self, source_dir):
+    def __get_source__(self, source_dir: str):
         sources = []
         images = [
             os.path.join(source_dir, x)
@@ -75,7 +83,7 @@ class ImageLoder:
 
         self.sources = np.array(sources)
 
-    def __get_result__(self, result_dir):
+    def __get_result__(self, result_dir: str):
         results = []
         images = [
             os.path.join(result_dir, x)
