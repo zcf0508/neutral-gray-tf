@@ -4,6 +4,7 @@ from tensorflow import keras
 from .layers.attenction import AttenctionBlock
 from .layers.residual import ResidualBlock
 from .layers.mir import MFAMBlock, downSample, upSample
+
 IMG_WIDTH = None
 IMG_HEIGHT = None
 
@@ -155,3 +156,8 @@ class GRAY:
         )
 
         return model
+
+    def load_model(model_path: str):
+        return tf.keras.models.load_model(
+            model_path, custom_objects={"MyLoss": MyLoss()}
+        )
