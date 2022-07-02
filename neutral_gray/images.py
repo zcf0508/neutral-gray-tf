@@ -5,10 +5,8 @@ import tensorflow as tf
 import numpy as np
 import numpy.typing as npt
 import matplotlib.pyplot as plt
-from PIL import Image
-from PIL import ImageEnhance
 
-from .config import IMG_WIDTH
+from .config import IMG_WIDTH, BATCH_SIZE
 
 import os
 
@@ -23,26 +21,17 @@ def _is_image_file(filename: str):
 
 
 def encode_image(image_url: str):
-    img = Image.open(image_url)
-    aspect_ratio = img.height / img.width
+    img_raw = tf.io.read_file(image_url)
+    img_tensor = tf.image.decode_jpeg(img_raw)
 
-    img = img.resize(
-        (IMG_WIDTH, int(IMG_WIDTH * aspect_ratio)), Image.Resampling.LANCZOS
-    )
-
-    # img = img.transpose(Image.Transpose.FLIP_LEFT_RIGHT)  # 水平翻转
-    # enh_bri = ImageEnhance.Brightness(img)
-    # img = enh_bri.enhance(factor=0.9)  # 亮度
-    # img = img.rotate(10)  # 旋转
-
-    img_array = np.asarray(img) / 255  # 归一化
-    # img_gray  = np.dot(img_array,[0.299,0.587,0.114]) / 255.0 # 转为黑白
+    img_tensor = tf.image.resize(img_tensor, [int(IMG_WIDTH * 3 / 2), IMG_WIDTH])
+    img_final = img_tensor / 255.0  # 归一化
 
     # 预览
-    # plt.imshow((np.squeeze(img_array) * 255).astype(np.uint8))
+    # plt.imshow((np.squeeze(img_final) * 255).astype(np.uint8))
     # plt.show()
 
-    return img_array
+    return img_final
 
 
 def decode_image(img_array: npt.ArrayLike, save_path: str = ""):
@@ -64,7 +53,7 @@ def decode_image(img_array: npt.ArrayLike, save_path: str = ""):
     return result
 
 
-class ImageLoder:
+class ImageLoderV1:
     def __init__(self, source_dir: str, result_dir: str):
         self.sources = []
         self.results = []
@@ -111,3 +100,51 @@ class ImageLoder:
                 self.sources[train_len : (train_len + test_len)],
                 self.results[train_len : (train_len + test_len)],
             )
+
+
+AUTOTUNE = tf.data.experimental.AUTOTUNE
+
+
+class ImageLoderV2:
+    def __init__(self, source_dir: str, result_dir: str, cached: bool = True):
+        self.source_dir = source_dir
+        self.result_dir = result_dir
+        self.cached = cached
+        self.image_count = 0
+        self.images_ds = None
+        self.create_data_set()
+
+    def create_data_set(self):
+        source_images_urls = [
+            os.path.join(self.source_dir, x)
+            for x in os.listdir(self.source_dir)
+            if _is_image_file(x)
+        ]
+        self.image_count = len(source_images_urls)
+        result_images_urls = [
+            os.path.join(self.result_dir, x)
+            for x in os.listdir(self.result_dir)
+            if _is_image_file(x)
+        ]
+        if len(source_images_urls) != len(result_images_urls):
+            raise RuntimeError(f"源数据和结果数据数量不相等")
+
+        ds = tf.data.Dataset.from_tensor_slices(
+            (source_images_urls, result_images_urls)
+        )
+
+        self.images_ds = ds.map(
+            lambda source, result: (encode_image(source), encode_image(result))
+        )
+
+    def load_data(self):
+
+        ds = (
+            self.images_ds.cache(filename="./cache.tf-data")
+            if self.cached
+            else self.images_ds
+        ).apply(tf.data.experimental.shuffle_and_repeat(buffer_size=self.image_count))
+        ds = ds.repeat()
+        ds = ds.batch(BATCH_SIZE)
+        ds = ds.prefetch(buffer_size=AUTOTUNE)
+        return ds

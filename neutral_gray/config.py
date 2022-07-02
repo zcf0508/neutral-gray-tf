@@ -1,1 +1,5 @@
 IMG_WIDTH = 224
+
+# 训练超参数
+BATCH_SIZE = 8
+EPOCHS = 10
