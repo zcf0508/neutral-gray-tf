@@ -24,7 +24,7 @@ def encode_image(image_url: str):
     img_raw = tf.io.read_file(image_url)
     img_tensor = tf.image.decode_jpeg(img_raw)
 
-    img_tensor = tf.image.resize(img_tensor, [int(IMG_WIDTH * 3 / 2), IMG_WIDTH])
+    img_tensor = tf.image.resize(img_tensor, [IMG_WIDTH, IMG_WIDTH])
     img_final = img_tensor / 255.0  # 归一化
 
     # 预览
@@ -115,6 +115,15 @@ class ImageLoderV2:
         self.create_data_set()
 
     def create_data_set(self):
+        if os.path.exists(os.path.join(self.source_dir, "../saved_data")):
+            # 读取处理后的缓存数据
+            self.images_ds = tf.data.experimental.load(
+                os.path.join(self.source_dir, "../saved_data"),
+                compression="GZIP",
+            )
+            self.image_count = self.images_ds.cardinality().numpy()
+            return
+
         source_images_urls = [
             os.path.join(self.source_dir, x)
             for x in os.listdir(self.source_dir)
@@ -137,14 +146,18 @@ class ImageLoderV2:
             lambda source, result: (encode_image(source), encode_image(result))
         )
 
-    def load_data(self):
+        # 缓存处理后的数据
+        tf.data.experimental.save(
+            self.images_ds,
+            os.path.join(self.source_dir, "../saved_data"),
+            compression="GZIP",
+        )
 
+    def load_data(self):
         ds = (
             self.images_ds.cache(filename="./cache.tf-data")
             if self.cached
             else self.images_ds
         ).apply(tf.data.experimental.shuffle_and_repeat(buffer_size=self.image_count))
-        ds = ds.repeat()
-        ds = ds.batch(BATCH_SIZE)
-        ds = ds.prefetch(buffer_size=AUTOTUNE)
+        ds = ds.batch(BATCH_SIZE).prefetch(buffer_size=AUTOTUNE)
         return ds

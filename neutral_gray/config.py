@@ -1,4 +1,4 @@
-IMG_WIDTH = 224
+IMG_WIDTH = 1024
 
 # 训练超参数
 BATCH_SIZE = 8
