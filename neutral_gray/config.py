@@ -1,5 +1,7 @@
 IMG_WIDTH = 1024
 
 # 训练超参数
+FILTER = [4, 8, 16, 32]
+# FILTER = [16, 32, 64, 128]
 BATCH_SIZE = 8
 EPOCHS = 10

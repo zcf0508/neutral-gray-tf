@@ -3,3 +3,4 @@
 Pipfile.lock
 data
 cache.tf-data*
+logs
