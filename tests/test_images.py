@@ -19,4 +19,8 @@ class TestImages(unittest.TestCase):
     def test_2(self):
         images = ImageLoderV2("./data/0", "./data/1").load_data()
         train_images, train_results = next(iter(images))
+
+        test_images_data = ImageLoderV2("./data_test/0", "./data_test/1").load_data()
+        test_images, test_results = next(iter(test_images_data))
+
         self.assertEqual(train_images.shape[1:4], (IMG_WIDTH, IMG_WIDTH, 3))

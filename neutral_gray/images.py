@@ -15,7 +15,7 @@ def _is_image_file(filename: str):
     return any(
         filename.lower().endswith(extension)
         for extension in [
-            ".jpg",
+            ".jpg", ".png"
         ]
     )
 
@@ -155,7 +155,7 @@ class ImageLoderV2:
 
     def load_data(self):
         ds = (
-            self.images_ds.cache(filename="./cache.tf-data")
+            self.images_ds.cache(filename=os.path.join(self.source_dir, "../cache.tf-data"))
             if self.cached
             else self.images_ds
         ).apply(tf.data.experimental.shuffle_and_repeat(buffer_size=self.image_count))
