@@ -2,5 +2,7 @@
 
 Pipfile.lock
 data
+data_test
 cache.tf-data*
 logs
+models
