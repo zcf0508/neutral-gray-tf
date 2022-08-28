@@ -20,11 +20,11 @@ def _is_image_file(filename: str):
     )
 
 
-def encode_image(image_url: str):
+def encode_image(image_url: str, width=None, height=None):
     img_raw = tf.io.read_file(image_url)
     img_tensor = tf.image.decode_jpeg(img_raw)
 
-    img_tensor = tf.image.resize(img_tensor, [IMG_WIDTH, IMG_WIDTH])
+    img_tensor = tf.image.resize(img_tensor, [width or IMG_WIDTH, height or IMG_WIDTH])
     img_final = img_tensor / 255.0  # 归一化
 
     # 预览
@@ -106,7 +106,7 @@ AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 
 class ImageLoderV2:
-    def __init__(self, source_dir: str, result_dir: str, cached: bool = True):
+    def __init__(self, source_dir: str, result_dir: str, cached: bool = False):
         self.source_dir = source_dir
         self.result_dir = result_dir
         self.cached = cached
@@ -159,5 +159,5 @@ class ImageLoderV2:
             if self.cached
             else self.images_ds
         ).apply(tf.data.experimental.shuffle_and_repeat(buffer_size=self.image_count))
-        ds = ds.batch(BATCH_SIZE).prefetch(buffer_size=AUTOTUNE)
+        ds = ds.batch(batch_size=BATCH_SIZE, drop_remainder=True).prefetch(buffer_size=AUTOTUNE)
         return ds

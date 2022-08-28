@@ -1,22 +1,24 @@
 import time
+import tensorflow as tf
 import matplotlib.pyplot as plt
 from neutral_gray.images import ImageLoderV2
-from neutral_gray.model import GRAY
+from neutral_gray.model import GRAY, MyLoss
 from neutral_gray.config import BATCH_SIZE, EPOCHS
 
 model = GRAY().getModel()
+# model = tf.keras.models.load_model('', custom_objects={'MyLoss': MyLoss()})
 
 train_images_data = ImageLoderV2("./data/0", "./data/1").load_data()
 train_images, train_results = next(iter(train_images_data))
 
-test_images_data = ImageLoderV2("./data_test/0", "./data_test/1").load_data()
+test_images_data = ImageLoderV2("./data_test/0", "./data_test/1", True).load_data()
 test_images, test_results = next(iter(test_images_data))
+
 
 history = model.fit(
   train_images,
   train_results,
   validation_data=(test_images, test_results),
-  batch_size=BATCH_SIZE, 
   epochs=EPOCHS,
 )
 
@@ -45,6 +47,6 @@ def show_histroy(history):
   plt.title('Training and Validation Loss')
   plt.show()
 
-show_histroy(history)
-
 model.save('./models/gray-model-'+str(time.time()))
+
+show_histroy(history)
