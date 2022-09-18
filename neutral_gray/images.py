@@ -11,6 +11,16 @@ from .config import IMG_WIDTH, BATCH_SIZE
 import os
 
 
+def show_image(image: npt.ArrayLike):
+    try:
+        plt.figure()
+        plt.imshow(tf.keras.preprocessing.image.array_to_img(image))
+        plt.title('图片')
+        plt.axis('off')
+        plt.show()
+    except Exception as e:
+        print(e)
+
 def _is_image_file(filename: str):
     return any(
         filename.lower().endswith(extension)
@@ -106,10 +116,9 @@ AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 
 class ImageLoderV2:
-    def __init__(self, source_dir: str, result_dir: str, cached: bool = False):
+    def __init__(self, source_dir: str, result_dir: str):
         self.source_dir = source_dir
         self.result_dir = result_dir
-        self.cached = cached
         self.image_count = 0
         self.images_ds = None
         self.create_data_set()
@@ -117,47 +126,48 @@ class ImageLoderV2:
     def create_data_set(self):
         if os.path.exists(os.path.join(self.source_dir, "../saved_data")):
             # 读取处理后的缓存数据
-            self.images_ds = tf.data.experimental.load(
+            ds = tf.data.experimental.load(
                 os.path.join(self.source_dir, "../saved_data"),
                 compression="GZIP",
             )
-            self.image_count = self.images_ds.cardinality().numpy()
-            return
+            self.image_count = ds.cardinality().numpy()
 
-        source_images_urls = [
-            os.path.join(self.source_dir, x)
-            for x in os.listdir(self.source_dir)
-            if _is_image_file(x)
-        ]
-        self.image_count = len(source_images_urls)
-        result_images_urls = [
-            os.path.join(self.result_dir, x)
-            for x in os.listdir(self.result_dir)
-            if _is_image_file(x)
-        ]
-        if len(source_images_urls) != len(result_images_urls):
-            raise RuntimeError(f"源数据和结果数据数量不相等")
+        else:
+            source_images_urls = [
+                os.path.join(self.source_dir, x)
+                for x in os.listdir(self.source_dir)
+                if _is_image_file(x)
+            ]
+            self.image_count = len(source_images_urls)
+            result_images_urls = [
+                os.path.join(self.result_dir, x)
+                for x in os.listdir(self.result_dir)
+                if _is_image_file(x)
+            ]
+            if len(source_images_urls) != len(result_images_urls):
+                raise RuntimeError(f"源数据和结果数据数量不相等")
 
-        ds = tf.data.Dataset.from_tensor_slices(
-            (source_images_urls, result_images_urls)
-        )
+            ds = tf.data.Dataset.from_tensor_slices(
+                (source_images_urls, result_images_urls)
+            )
 
+            # 缓存处理后的数据
+            tf.data.experimental.save(
+                ds,
+                os.path.join(self.source_dir, "../saved_data"),
+                compression="GZIP",
+            )
+
+        self.images_ds = ds.shuffle(buffer_size=int(self.image_count))
+        
         self.images_ds = ds.map(
             lambda source, result: (encode_image(source), encode_image(result))
         )
 
-        # 缓存处理后的数据
-        tf.data.experimental.save(
-            self.images_ds,
-            os.path.join(self.source_dir, "../saved_data"),
-            compression="GZIP",
-        )
-
+        
     def load_data(self):
-        ds = (
-            self.images_ds.cache(filename=os.path.join(self.source_dir, "../cache.tf-data"))
-            if self.cached
-            else self.images_ds
-        ).apply(tf.data.experimental.shuffle_and_repeat(buffer_size=self.image_count))
-        ds = ds.batch(batch_size=BATCH_SIZE, drop_remainder=True).prefetch(buffer_size=AUTOTUNE)
+        ds = self.images_ds
+        ds = ds.repeat()
+        ds = ds.batch(batch_size=BATCH_SIZE, drop_remainder=True)
+        ds = ds.prefetch(buffer_size=AUTOTUNE)
         return ds

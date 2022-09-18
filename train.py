@@ -3,23 +3,31 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 from neutral_gray.images import ImageLoderV2
 from neutral_gray.model import GRAY, MyLoss
-from neutral_gray.config import BATCH_SIZE, EPOCHS
+from neutral_gray.config import EPOCHS, STEPS
 
 model = GRAY().getModel()
 # model = tf.keras.models.load_model('', custom_objects={'MyLoss': MyLoss()})
 
+model.compile(
+      optimizer=tf.keras.optimizers.Adam(1e-3), # 用于微调
+      # optimizer=tf.keras.optimizers.SGD(0.02, momentum=0.5, nesterov=True), # 用于预训练
+      loss=MyLoss(),
+      metrics=["accuracy"],
+  )
+
 train_images_data = ImageLoderV2("./data/0", "./data/1").load_data()
-train_images, train_results = next(iter(train_images_data))
-
-test_images_data = ImageLoderV2("./data_test/0", "./data_test/1", True).load_data()
-test_images, test_results = next(iter(test_images_data))
-
+test_images_data = ImageLoderV2("./data_test/0", "./data_test/1").load_data()
 
 history = model.fit(
-  train_images,
-  train_results,
-  validation_data=(test_images, test_results),
+  train_images_data,
+  steps_per_epoch=STEPS,
+  validation_data=test_images_data,
+  validation_steps=2,
   epochs=EPOCHS,
+  callbacks=[
+    tf.keras.callbacks.EarlyStopping(
+          monitor='val_loss', min_delta=0.0001, patience=15, restore_best_weights=True, verbose=1)
+  ]
 )
 
 # 显示训练曲线

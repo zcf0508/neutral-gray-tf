@@ -4,7 +4,7 @@ from tensorflow import keras
 from .layers.attenction import AttenctionBlock
 from .layers.residual import ResidualBlock
 from .layers.mir import MFAMBlock, downSample, upSample
-from .config import FILTER
+from .config import FILTER, LOSS_WEIGHT
 
 IMG_WIDTH = None
 IMG_HEIGHT = None
@@ -12,10 +12,16 @@ IMG_HEIGHT = None
 
 class MyLoss(tf.keras.losses.Loss):
     def call(self, y_true, y_pred):
+        a = keras.losses.BinaryCrossentropy()(y_true, y_pred)
+        b = keras.losses.MeanSquaredError()(y_true, y_pred)
+        c = keras.losses.MeanAbsoluteError()(y_true, y_pred)
+        # print(f'二值交叉熵-{tf.print(a)} 均方误差-{tf.print(b)} 平均绝对误差-{tf.print(c)}')
+        # 像素准确度
+        # tf.print(tf.reduce_mean(tf.cast(tf.equal(y_true, y_pred), tf.float32)))
         return (
-            0.01 * keras.losses.BinaryCrossentropy()(y_true, y_pred)
-            + 0.5 * keras.losses.MeanSquaredError()(y_true, y_pred)
-            + 0.5 * keras.losses.MeanAbsoluteError()(y_true, y_pred)
+            LOSS_WEIGHT[0] * a
+            + LOSS_WEIGHT[1] * b
+            + LOSS_WEIGHT[2] * c
         )
 
 
@@ -146,15 +152,6 @@ class GRAY:
         output = keras.layers.Conv2DTranspose(3, 3, strides=2, padding="same")(up1)
 
         model = keras.Model(input, output)
-
-        model.compile(
-            optimizer=tf.keras.optimizers.Adam(3e-4),
-            # loss = keras.losses.BinaryCrossentropy(),
-            # loss = keras.losses.MeanAbsoluteError(),
-            # loss = keras.losses.MeanSquaredError(), # l2 loss
-            loss=MyLoss(),
-            metrics=["accuracy"],
-        )
 
         return model
 
