@@ -1,4 +1,5 @@
 import time
+import math
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from neutral_gray.images import ImageLoderV2
@@ -18,6 +19,21 @@ model.compile(
 train_images_data = ImageLoderV2("./data/0", "./data/1").load_data()
 test_images_data = ImageLoderV2("./data_test/0", "./data_test/1").load_data()
 
+def lr_decay_callback():
+    """ 变化学习率
+    """
+
+    # lr decay function
+    def lr_decay(epoch):
+      initial_lrate = 0.1
+      drop = 0.5
+      epochs_drop = 10.0
+      lrate = initial_lrate * math.pow(drop, math.floor((1+epoch)/epochs_drop))
+      return lrate
+
+    # lr schedule callback
+    return tf.keras.callbacks.LearningRateScheduler(lr_decay, verbose=False)
+
 history = model.fit(
   train_images_data,
   steps_per_epoch=STEPS,
@@ -26,7 +42,8 @@ history = model.fit(
   epochs=EPOCHS,
   callbacks=[
     tf.keras.callbacks.EarlyStopping(
-          monitor='val_loss', min_delta=0.0001, patience=15, restore_best_weights=True, verbose=1)
+          monitor='val_loss', min_delta=0.0001, patience=15, restore_best_weights=True, verbose=1),
+    lr_decay_callback()
   ]
 )
 
