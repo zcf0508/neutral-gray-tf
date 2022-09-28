@@ -1,6 +1,5 @@
 import tensorflow as tf
-from tensorflow import keras
-
+keras = tf.keras
 
 class AttenctionBlock(keras.layers.Layer):
     def __init__(self, filters=3):

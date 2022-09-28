@@ -1,10 +1,10 @@
 import tensorflow as tf
-from tensorflow import keras
+keras = tf.keras
 
 from .layers.attenction import AttenctionBlock
 from .layers.residual import ResidualBlock
 from .layers.mir import MFAMBlock, downSample, upSample
-from .config import FILTER, LOSS_WEIGHT
+from .config import FILTER, LOSS_WEIGHT, RES
 
 IMG_WIDTH = None
 IMG_HEIGHT = None
@@ -56,10 +56,8 @@ class GRAY:
         down4 = downSample(down3, FILTER[3])
 
         res = self.residualBlock(down4)
-        res = self.residualBlock(res)
-        res = self.residualBlock(res)
-        res = self.residualBlock(res)
-        res = self.residualBlock(res)
+        for _ in range(RES):
+            res = self.residualBlock(res)
 
         # 1
         down1_up_atten = self.attenction_0(
