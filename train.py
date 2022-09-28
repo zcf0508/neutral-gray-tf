@@ -18,6 +18,7 @@ model.compile(
 
 train_images_data = ImageLoderV2("./data/0", "./data/1").load_data()
 test_images_data = ImageLoderV2("./data_test/0", "./data_test/1").load_data()
+model_time = str(time.time())
 
 def lr_decay_callback():
     """ 变化学习率
@@ -41,9 +42,10 @@ history = model.fit(
   validation_steps=2,
   epochs=EPOCHS,
   callbacks=[
+    tf.keras.callbacks.TensorBoard(log_dir='./logs/' + model_time),  # tensorboard --logdir=./logs/(model_time)
     tf.keras.callbacks.EarlyStopping(
           monitor='val_loss', min_delta=0.0001, patience=15, restore_best_weights=True, verbose=1),
-    lr_decay_callback()
+    lr_decay_callback(),
   ]
 )
 
@@ -72,6 +74,6 @@ def show_histroy(history):
   plt.title('Training and Validation Loss')
   plt.show()
 
-model.save('./models/gray-model-'+str(time.time()))
+model.save('./models/gray-model-' + model_time)
 
 show_histroy(history)
