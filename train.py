@@ -3,16 +3,16 @@ import math
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from neutral_gray.images import ImageLoderV2
-from neutral_gray.model import GRAY, MyLoss
+from neutral_gray.model import GRAY
 from neutral_gray.config import EPOCHS, STEPS
 
 model = GRAY().getModel()
-# model = tf.keras.models.load_model('', custom_objects={'MyLoss': MyLoss()})
+# pre_model = tf.keras.models.load_model('', compile=False)
+# model.set_weights(pre_model.get_weights())
 
 model.compile(
       optimizer=tf.keras.optimizers.Adam(1e-3), # 用于微调
       # optimizer=tf.keras.optimizers.SGD(0.02, momentum=0.5, nesterov=True), # 用于预训练
-      loss=MyLoss(),
       metrics=["accuracy"],
   )
 
@@ -26,7 +26,7 @@ def lr_decay_callback():
 
     # lr decay function
     def lr_decay(epoch):
-      initial_lrate = 0.1
+      initial_lrate = 2e-2
       drop = 0.5
       epochs_drop = 10.0
       lrate = initial_lrate * math.pow(drop, math.floor((1+epoch)/epochs_drop))

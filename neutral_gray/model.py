@@ -1,28 +1,58 @@
 import tensorflow as tf
-keras = tf.keras
-
 from .layers.attenction import AttenctionBlock
 from .layers.residual import ResidualBlock
 from .layers.mir import MFAMBlock, downSample, upSample
 from .config import FILTER, LOSS_WEIGHT, RES
+from .losses.generator_loss import generator_loss
+from .losses.perceptual_loss import perceptual_loss
 
 IMG_WIDTH = None
 IMG_HEIGHT = None
 
+keras = tf.keras
+mae_metric = keras.metrics.MeanAbsoluteError(name="mae")
 
-class MyLoss(tf.keras.losses.Loss):
-    def call(self, y_true, y_pred):
-        a = keras.losses.BinaryCrossentropy()(y_true, y_pred)
-        b = keras.losses.MeanSquaredError()(y_true, y_pred)
-        c = keras.losses.MeanAbsoluteError()(y_true, y_pred)
-        # print(f'二值交叉熵-{tf.print(a)} 均方误差-{tf.print(b)} 平均绝对误差-{tf.print(c)}')
-        # 像素准确度
-        # tf.print(tf.reduce_mean(tf.cast(tf.equal(y_true, y_pred), tf.float32)))
-        return (
-            LOSS_WEIGHT[0] * a
-            + LOSS_WEIGHT[1] * b
-            + LOSS_WEIGHT[2] * c
+# https://openaccess.thecvf.com/content/WACV2021/papers/Shafaei_AutoRetouch_Automatic_Professional_Face_Retouching_WACV_2021_paper.pdf
+class CustomModel(keras.Model):
+    def train_step(self, data):
+        input_image, target = data
+
+        with tf.GradientTape() as gen_tape:
+            gen_output = self(input_image)
+            disc_generated_output = tf.cast(target - gen_output, tf.float32)
+            total_loss = (
+                LOSS_WEIGHT[0]
+                * generator_loss(disc_generated_output, gen_output, target)  # gan loss
+                + LOSS_WEIGHT[1]
+                * perceptual_loss(gen_output, target)  # perceptual loss
+                + LOSS_WEIGHT[2]
+                * keras.losses.MeanSquaredError()(target, gen_output)  # l2 loss
+            )
+
+        generator_gradients = gen_tape.gradient(total_loss, self.trainable_variables)
+        self.optimizer.apply_gradients(
+            zip(generator_gradients, self.trainable_variables)
         )
+
+        mae_metric.update_state(target, gen_output)
+        return {"loss": total_loss, "accuracy": mae_metric.result()}
+
+    def test_step(self, data):
+        input_image, target = data
+
+        gen_output = self(input_image)
+        disc_generated_output = tf.cast(target - gen_output, tf.float32)
+        total_loss = (
+            LOSS_WEIGHT[0]
+            * generator_loss(disc_generated_output, gen_output, target)  # gan loss
+            + LOSS_WEIGHT[1]
+            * perceptual_loss(gen_output, target)  # perceptual loss
+            + LOSS_WEIGHT[2]
+            * keras.losses.MeanSquaredError()(target, gen_output)  # l2 loss
+        )
+
+        mae_metric.update_state(target, gen_output)
+        return {"loss": total_loss, "accuracy": mae_metric.result()}
 
 
 class GRAY:
@@ -68,15 +98,9 @@ class GRAY:
             keras.layers.MaxPooling2D(pool_size=(2, 2), strides=2)(down1)
         )
 
-        down1_mir1 = self.mir_0(
-            down1_up_atten, down1_direct_atten, down1_down_atten, 1
-        )
-        down1_mir2 = self.mir_0(
-            down1_up_atten, down1_direct_atten, down1_down_atten, 2
-        )
-        down1_mir3 = self.mir_0(
-            down1_up_atten, down1_direct_atten, down1_down_atten, 3
-        )
+        down1_mir1 = self.mir_0(down1_up_atten, down1_direct_atten, down1_down_atten, 1)
+        down1_mir2 = self.mir_0(down1_up_atten, down1_direct_atten, down1_down_atten, 2)
+        down1_mir3 = self.mir_0(down1_up_atten, down1_direct_atten, down1_down_atten, 3)
 
         down1_mir1_atten = self.attenction_0(down1_mir1)
         down1_mir2_atten = self.attenction_0(down1_mir2)
@@ -94,15 +118,9 @@ class GRAY:
             keras.layers.MaxPooling2D(pool_size=(2, 2), strides=2)(down2)
         )
 
-        down2_mir1 = self.mir_1(
-            down2_up_atten, down2_direct_atten, down2_down_atten, 1
-        )
-        down2_mir2 = self.mir_1(
-            down2_up_atten, down2_direct_atten, down2_down_atten, 2
-        )
-        down2_mir3 = self.mir_1(
-            down2_up_atten, down2_direct_atten, down2_down_atten, 3
-        )
+        down2_mir1 = self.mir_1(down2_up_atten, down2_direct_atten, down2_down_atten, 1)
+        down2_mir2 = self.mir_1(down2_up_atten, down2_direct_atten, down2_down_atten, 2)
+        down2_mir3 = self.mir_1(down2_up_atten, down2_direct_atten, down2_down_atten, 3)
 
         down2_mir1_atten = self.attenction_1(down2_mir1)
         down2_mir2_atten = self.attenction_1(down2_mir2)
@@ -120,15 +138,9 @@ class GRAY:
             keras.layers.MaxPooling2D(pool_size=(2, 2), strides=2)(down3)
         )
 
-        down3_mir1 = self.mir_2(
-            down3_up_atten, down3_direct_atten, down3_down_atten, 1
-        )
-        down3_mir2 = self.mir_2(
-            down3_up_atten, down3_direct_atten, down3_down_atten, 2
-        )
-        down3_mir3 = self.mir_2(
-            down3_up_atten, down3_direct_atten, down3_down_atten, 3
-        )
+        down3_mir1 = self.mir_2(down3_up_atten, down3_direct_atten, down3_down_atten, 1)
+        down3_mir2 = self.mir_2(down3_up_atten, down3_direct_atten, down3_down_atten, 2)
+        down3_mir3 = self.mir_2(down3_up_atten, down3_direct_atten, down3_down_atten, 3)
 
         down3_mir1_atten = self.attenction_2(down3_mir1)
         down3_mir2_atten = self.attenction_2(down3_mir2)
@@ -149,11 +161,6 @@ class GRAY:
 
         output = keras.layers.Conv2DTranspose(3, 3, strides=2, padding="same")(up1)
 
-        model = keras.Model(input, output)
+        model = CustomModel(input, output)
 
         return model
-
-    def load_model(model_path: str):
-        return tf.keras.models.load_model(
-            model_path, custom_objects={"MyLoss": MyLoss()}
-        )
