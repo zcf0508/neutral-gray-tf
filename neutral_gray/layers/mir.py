@@ -1,6 +1,7 @@
 import tensorflow as tf
 keras = tf.keras
 
+count = 0
 
 def upSample(input, filters):
     x = keras.layers.Conv2DTranspose(
@@ -21,14 +22,18 @@ def downSample(input, filters):
 
 
 class MFAMBlock(keras.layers.Layer):
+    """
+    多尺度特征聚合模块
+    """
     def __init__(self, filters=3):
-        super(MFAMBlock, self).__init__()
+        super(MFAMBlock, self).__init__(name='MFAMBlock')
         self.filters = filters
         self.conv2d = keras.layers.Conv2D(
             filters=self.filters, kernel_size=(1, 1), padding="same"
         )
 
     def __call__(self, input1, input2, input3, scale=2):
+        global count
         if scale == 1:
             input2 = upSample(input2, self.filters)
             input3 = upSample(input3, self.filters)
@@ -57,6 +62,8 @@ class MFAMBlock(keras.layers.Layer):
         x2 = keras.layers.Multiply()([y2, input2])
         x3 = keras.layers.Multiply()([y3, input3])
 
-        x = keras.layers.Add()([x1, x2, x3])
+        x = keras.layers.Add(name=f"MFAMBlock_ADD_{count}")([x1, x2, x3])
+        
+        count += 1
 
         return x

@@ -1,9 +1,14 @@
 import tensorflow as tf
 keras = tf.keras
 
+count = 0
+
 class AttenctionBlock(keras.layers.Layer):
+    """
+    自注意力模块
+    """
     def __init__(self, filters=3):
-        super(AttenctionBlock, self).__init__()
+        super(AttenctionBlock, self).__init__(name="AttenctionBlock")
         self.filters = filters
 
         self.conv2d_1 = keras.layers.Conv2D(
@@ -43,10 +48,14 @@ class AttenctionBlock(keras.layers.Layer):
         return x
 
     def __call__(self, input):
+        global count
         x = self.conv2d_1(input)
         x = self.prelu(x)
         x = self.conv2d_1(x)
         x = keras.layers.Concatenate()([self._postion(x), self._channel(x)])
         x = self.conv2d_2(x)
-        x = keras.layers.Add()([input, x])
+        x = keras.layers.Add(name=f"AttenctionBlock_ADD_{count}")([input, x])
+        
+        count += 1
+        
         return x
