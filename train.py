@@ -1,3 +1,4 @@
+import os
 import time
 import math
 import tensorflow as tf
@@ -35,6 +36,9 @@ def lr_decay_callback():
     # lr schedule callback
     return tf.keras.callbacks.LearningRateScheduler(lr_decay, verbose=False)
 
+ckpt_path = os.path.join(os.getcwd(), 'ckpt', model_time)
+os.makedirs(ckpt_path)
+
 history = model.fit(
   train_images_data,
   steps_per_epoch=STEPS,
@@ -46,6 +50,11 @@ history = model.fit(
     tf.keras.callbacks.EarlyStopping(
           monitor='val_loss', min_delta=0.0001, patience=15, restore_best_weights=True, verbose=1),
     lr_decay_callback(),
+    tf.keras.callbacks.ModelCheckpoint(
+        filepath=ckpt_path + '/model.{epoch:02d}-{val_loss:.4f}.hdf5', 
+        save_freq='epoch', verbose=1, monitor='val_loss', 
+        save_weights_only=True, 
+    ),
   ]
 )
 
