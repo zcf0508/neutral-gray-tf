@@ -12,6 +12,10 @@ IMG_HEIGHT = None
 keras = tf.keras
 mae_metric = keras.metrics.MeanAbsoluteError(name="mae")
 
+@tf.function
+def pixel_accuracy(y_true,y_pred):
+    return tf.reduce_mean(tf.cast(tf.equal(y_true, y_pred), tf.float32))
+
 # https://openaccess.thecvf.com/content/WACV2021/papers/Shafaei_AutoRetouch_Automatic_Professional_Face_Retouching_WACV_2021_paper.pdf
 class CustomModel(keras.Model):
     def train_step(self, data):
@@ -35,7 +39,7 @@ class CustomModel(keras.Model):
         )
 
         mae_metric.update_state(target, gen_output)
-        return {"loss": total_loss, "accuracy": mae_metric.result()}
+        return {"loss": total_loss, "accuracy": pixel_accuracy(target, gen_output), "mae": mae_metric.result()}
 
     def test_step(self, data):
         input_image, target = data
@@ -52,7 +56,7 @@ class CustomModel(keras.Model):
         )
 
         mae_metric.update_state(target, gen_output)
-        return {"loss": total_loss, "accuracy": mae_metric.result()}
+        return {"loss": total_loss, "accuracy": pixel_accuracy(target, gen_output), "mae": mae_metric.result()}
 
 
 class GRAY:
