@@ -24,13 +24,13 @@ class CustomModel(keras.Model):
         with tf.GradientTape() as gen_tape:
             gen_output = self(input_image)
             disc_generated_output = tf.cast(target - gen_output, tf.float32)
+            a = generator_loss(disc_generated_output, gen_output, target)  # gan loss
+            b = perceptual_loss(gen_output, target)  # perceptual loss
+            c = keras.losses.MeanSquaredError()(target, gen_output)  # l2 loss
             total_loss = (
-                LOSS_WEIGHT[0]
-                * generator_loss(disc_generated_output, gen_output, target)  # gan loss
-                + LOSS_WEIGHT[1]
-                * perceptual_loss(gen_output, target)  # perceptual loss
-                + LOSS_WEIGHT[2]
-                * keras.losses.MeanSquaredError()(target, gen_output)  # l2 loss
+                LOSS_WEIGHT[0] * a
+                + LOSS_WEIGHT[1] * b
+                + LOSS_WEIGHT[2] * c
             )
 
         generator_gradients = gen_tape.gradient(total_loss, self.trainable_variables)
@@ -39,24 +39,38 @@ class CustomModel(keras.Model):
         )
 
         mae_metric.update_state(target, gen_output)
-        return {"loss": total_loss, "accuracy": pixel_accuracy(target, gen_output), "mae": mae_metric.result()}
+        return {
+            "loss": total_loss, 
+            # "gan_loss": a,
+            # "perceptual_loss": b,
+            # "l2_loss": c,
+            "accuracy": pixel_accuracy(target, gen_output), 
+            "mae": mae_metric.result()
+        }
 
     def test_step(self, data):
         input_image, target = data
 
         gen_output = self(input_image)
         disc_generated_output = tf.cast(target - gen_output, tf.float32)
+        a = generator_loss(disc_generated_output, gen_output, target)  # gan loss
+        b = perceptual_loss(gen_output, target)  # perceptual loss
+        c = keras.losses.MeanSquaredError()(target, gen_output)  # l2 loss
         total_loss = (
-            LOSS_WEIGHT[0]
-            * generator_loss(disc_generated_output, gen_output, target)  # gan loss
-            + LOSS_WEIGHT[1]
-            * perceptual_loss(gen_output, target)  # perceptual loss
-            + LOSS_WEIGHT[2]
-            * keras.losses.MeanSquaredError()(target, gen_output)  # l2 loss
+            LOSS_WEIGHT[0] * a
+            + LOSS_WEIGHT[1] * b
+            + LOSS_WEIGHT[2] * c
         )
 
         mae_metric.update_state(target, gen_output)
-        return {"loss": total_loss, "accuracy": pixel_accuracy(target, gen_output), "mae": mae_metric.result()}
+        return {
+            "loss": total_loss, 
+            # "gan_loss": a,
+            # "perceptual_loss": b,
+            # "l2_loss": c,
+            "accuracy": pixel_accuracy(target, gen_output), 
+            "mae": mae_metric.result()
+        }
 
 
 class GRAY:
