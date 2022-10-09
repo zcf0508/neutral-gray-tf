@@ -1,5 +1,5 @@
 import os
-import time
+from datetime import datetime
 import math
 import tensorflow as tf
 import matplotlib.pyplot as plt
@@ -19,7 +19,7 @@ model.compile(
 
 train_images_data = ImageLoderV2("./data/0", "./data/1").load_data()
 test_images_data = ImageLoderV2("./data_test/0", "./data_test/1").load_data()
-model_time = str(time.time())
+model_time = datetime.now().strftime('%Y_%m_%d__%H_%M_%S')
 
 def lr_decay_callback():
     """ 变化学习率
